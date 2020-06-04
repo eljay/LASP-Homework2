@@ -93,8 +93,8 @@ class FindMatch(Process):
             counter = 0 # keep track of total matching perms for each process
             for match in self.matchingPerms:
                 print(counter+1, match) # prints a number next to every "matched" permuation. The total number is how many "matched" permutations result in 66 for each process
-                saveToFile(match, self.args)
                 counter += 1
+            saveToFile(self.matchingPerms, self.args) # call this function to write all the "matched" answers 
 
             print("Process " +str(self.index) + " completed\n")
             output_file.write(self.operType + " - Process " +str(self.index) + " completed\n")
@@ -108,7 +108,8 @@ def saveToFile(matchingPerms, args):
     """
 
     with open(args.output, 'a') as output_file:
-        output_file.write(str(matchingPerms)+ '\n')
+        for match in matchingPerms:
+            output_file.write(str(match)+ '\n')
 
 
 def findPerms(dividedPermsList, processCount, operType, args):
