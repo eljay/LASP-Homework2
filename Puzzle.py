@@ -2,7 +2,7 @@
  
 from multiprocessing import cpu_count, Process, Value
 from os import remove, path
-# from multiprocessing.pool import Pool
+from multiprocessing.pool import Pool
 import datetime
 import argparse
 
@@ -63,7 +63,8 @@ class FindMatch(Process):
 
         # determine whether you are finding all possible answers through order of operations or sequentially
         self.operType = operType
-
+        
+        # save all the arguments
         self.args = args
 
     def run(self):
@@ -77,40 +78,47 @@ class FindMatch(Process):
 
             Output: None
         """
-        
-        # parser = argparse.ArgumentParser()
-        # parser.add_argument("-o", "--output", help="write output to a filename you provide") # specify "-o <output file name>" in command line to store results
-        # args = parser.parse_args() # gets all the arguments 
 
         with open(self.args.output, 'a') as output_file:
-          if self.operType == 'Order of Operation':
-            for perm in self.dividedPermsList: 
-                if (((((((((((((perm[0]+13)*perm[1])/perm[2])+perm[3])+12)*perm[4])-perm[5])-11)+perm[6])*perm[7])/perm[8])-10) == 66):
-                  self.matchingPerms.append(perm) # store all permutations that result in a value of 66 whe plugged into the equation
-                #   saveToFile(perm, self.args)
-                #   output_file.write(str(perm)+ '\n') # write that "matched" permutation to the output file
-              
-          if self.operType == 'Sequence Operation':
-            for perm in self.dividedPermsList:
-                if perm[0] + 13 * perm[1] / perm[2] + perm[3] + 12 * perm[4]  - perm[5] - 11 + perm[6] * perm[7] / perm[8] - 10 == 66:
-                  self.matchingPerms.append(perm) # store all permutations that result in a value of 66 whe plugged into the equation
-                #   saveToFile(perm, self.args)
-                #   output_file.write(str(perm)+ '\n')  # write that "matched" permutation to the output file
+            if self.operType == 'Order of Operation':
+                for perm in self.dividedPermsList: 
+                    if (((((((((((((perm[0]+13)*perm[1])/perm[2])+perm[3])+12)*perm[4])-perm[5])-11)+perm[6])*perm[7])/perm[8])-10) == 66):
+                        self.matchingPerms.append(perm) # store all permutations that result in a value of 66 whe plugged into the equation
+                    
+            if self.operType == 'Sequence Operation':
+                for perm in self.dividedPermsList:
+                    if perm[0] + 13 * perm[1] / perm[2] + perm[3] + 12 * perm[4]  - perm[5] - 11 + perm[6] * perm[7] / perm[8] - 10 == 66:
+                        self.matchingPerms.append(perm) # store all permutations that result in a value of 66 whe plugged into the equation
+                
+            counter = 0 # keep track of total matching perms for each process
+            for match in self.matchingPerms:
+                print(counter+1, match) # prints a number next to every "matched" permuation. The total number is how many "matched" permutations result in 66 for each process
+                saveToFile(match, self.args)
+                counter += 1
 
-          counter = 0 # keep track of total matching perms for each process
-          for match in self.matchingPerms:
-            print(counter+1, match) # prints a number next to every "matched" permuation. The total number is how many "matched" permutations result in 66 for each process
-            saveToFile(match, self.args)
-            counter += 1
-          print("Process " +str(self.index) + " completed\n")
-          output_file.write(self.operType + " - Process " +str(self.index) + " completed\n")
+            print("Process " +str(self.index) + " completed\n")
+            output_file.write(self.operType + " - Process " +str(self.index) + " completed\n")
 
 def saveToFile(matchingPerms, args):
+    """ Creates an output file where all the "matched" permutations will be written to.
+
+        Input: matchingPerms list, number of args
+
+        Output: None 
+    """
+
     with open(args.output, 'a') as output_file:
         output_file.write(str(matchingPerms)+ '\n')
 
 
 def findPerms(dividedPermsList, processCount, operType, args):
+    """ Creates a process for each division of permutations and adds it to a list that will store all the processes.
+
+        Input: dividedPermsList, processCount, operType, number of args
+
+        Output: print how long it took for processes to be finished
+
+    """
     matchingPerms = []
 
     # The list of created processes
@@ -144,29 +152,27 @@ def findPerms(dividedPermsList, processCount, operType, args):
     print("Process", number, "ended")
     endTime = datetime.datetime.now()
     elapsedTime = (endTime - startTime).total_seconds()*1000
-    print("Total time elapsed: "+str(int(elapsedTime)) + " milliseconds")
-    # return tuple(matchingPerms)
-    
+    print("Total time elapsed: " + str(int(elapsedTime)) + " milliseconds")
+     
 def getPerms(inputList):
-    if len(inputList) <= 0:
+    """ Find all possible permutations from 1-9 (in main) and store it in a list called returnList
+
+        Input: inputList (numbers from 1-9)
+
+        Output: return the list of all permutations (called returnList)
+    """
+    if len(inputList) <= 1:
+        # print(0, inputList)
         return [inputList]
     else:
         returnList = []
         for idx in range(len(inputList)):
-            curr = inputList[idx]
-            all = inputList[:idx] + inputList[idx+1:]
-            for val in getPerms(all):
-                returnList.append([curr] + val)
+            all = inputList[:idx] + inputList[idx + 1:]
+            # print(1, idx, inputList, inputList[:idx], inputList[idx + 1:], all)
+            for perm in getPerms(all):
+                # print(2, idx, inputList, inputList[idx:idx+1], perm)
+                returnList.append(inputList[idx:idx+1] + perm)
         return returnList
-
-inputList = [1,2,3,4,5,6,7,8,9] 
-outputList = []
-
-for input in getPerms(inputList):
-    outputList.append(input)
-
-
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -177,51 +183,17 @@ def main():
         remove(args.output) # update outfile with 8 processes at a time (4 order of operations and 4 sequentially) instead of appending to existing processes 
 
     processCount = cpu_count()
+
+    inputList = [1,2,3,4,5,6,7,8,9]
+    outputList = []
+
+    for input in getPerms(inputList):
+        outputList.append(input)
+        # print(input)
+
     dividedPermsList = divide(outputList, processCount)
-    # print(len(dividedPermsList[1]))
     findPerms(dividedPermsList, processCount, 'Order of Operation', args)
     findPerms(dividedPermsList, processCount, 'Sequence Operation', args)
 
 if __name__ == "__main__":
     main()
-
-
-
-# -----------------------------------------------------------------------------------
-
-# def getPerms():
-#     perms = permutations(range(1,10))
-#     permsList = list(perms)
-#     return permsList
-
-
-# ----------------------------------------------------
-# def main():
-#     outputList = []
-    
-#     counter = 0
-
-#     perms = permutations(range(1,10))
-#     for perm in perms:
-#         if (((((((((((((perm[0]+13)*perm[1])/perm[2])+perm[3])+12)*perm[4])-perm[5])-11)+perm[6])*perm[7])/perm[8])-10) == 66):
-#             counter += 1
-#             print(perm)
-#     print(counter)
-
-#     counter = 0
-
-#     perms = permutations(range(1,10))
-#     for perm in perms:
-#         if perm[0] + 13 * perm[1] / perm[2] + perm[3] + 12 * perm[4] - perm[5] - 11 + perm[6] * perm[7] / perm[8] - 10 == 66:
-#             counter += 1
-#             print(perm)
-#     print(counter)
-
-#     # processCount = cpu_count()
-#     # dividedPermsList = divide(getPerms(), processCount)
-#     # run(dividedPermsList, outputList, processCount)
-#     # print(outputList)
-
-    
-# if __name__ == "__main__":
-#     main()
