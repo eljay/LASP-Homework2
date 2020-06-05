@@ -5,6 +5,37 @@ from os import remove, path
 from multiprocessing.pool import Pool
 import argparse
 
+def divide(inputList, processCount):
+    """ Given a list of values and the number of processes, divide the
+        input list up into even (as even as possible) chunks.
+
+        Input:  input list [value <object>]
+                process count <int>
+
+        Output: list of sub-lists [sub-list [<object>]]
+    """
+    # Calculate the index step size. Make sure the step is at least 1.
+    step = max(1, len(inputList) // processCount)
+
+    # If there are too many processes, reduce the number of processes to the number of input values
+    processCount = min(processCount, len(inputList))
+
+    # A list of sub-lists from the input list
+    outputList = []
+
+    # Go through each process number
+    for number in range(processCount):
+        # Calculate the "first" index for this process
+        fIndex = number * step
+
+        # Calculate the last index. If it's the last process, set the last index to the length of the input list.
+        lIndex = (number + 1) * step if (number < processCount - 1) else len(inputList)
+
+        # Append the chunk to the output list
+        outputList.append(inputList[fIndex:lIndex])
+
+    return outputList
+
 def getPerms(inputList):
     """ Find all possible permutations from 1-9 (in main) and store it in a list called returnList
 
@@ -108,8 +139,9 @@ def saveToFile(matchingPerms, args, operType):
     with open(args.output, 'a') as output_file:
         output_file.write(operType + " - writing to file started \n")
         for match in matchingPerms:
-            output_file.write(str(match) + '\n')
-        output_file.write(operType + " - writing to file completed \n")
+            for element in match:
+                output_file.write(str(element) + '\n')
+        output_file.write(operType + " - writing to file completed \n\n")
 
 
 def main():
@@ -133,10 +165,12 @@ def main():
 
     outputList = processPerms(inputList, processCount)
 
-    matchedListOrder = processMatchOrder(outputList, processCount)
+    outputListDivided = divide(outputList[0], processCount)
+
+    matchedListOrder = processMatchOrder(outputListDivided, processCount)
     saveToFile(matchedListOrder, args, 'Order of Operations')
 
-    matchedListSequence = processMatchSequence(outputList, processCount)
+    matchedListSequence = processMatchSequence(outputListDivided, processCount)
     saveToFile(matchedListSequence, args, 'Sequence Operations')
 
 if __name__ == "__main__":
